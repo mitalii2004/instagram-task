@@ -8,7 +8,6 @@ const friendRequestSchema = new mongoose.Schema({
 
     receiver: {
         type: mongoose.Schema.Types.ObjectId
-
     },
 
     status: {

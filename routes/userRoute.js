@@ -12,5 +12,6 @@ router.post("/friendRequest", UserController.friendRequest)
 router.get("/getFriendRequests",UserController.getFriendRequests)
 router.post("/blockingStatus",UserController.blockingStatus)
 router.get("/getBlockingStatus",UserController.getBlockingStatus)
+router.post("/logout",verifyToken,UserController.logout)
 
 module.exports = router

@@ -31,21 +31,121 @@ module.exports = {
         }
     },
 
+    // login: async (req, res) => {
+    //     try {
+    //         const { email, password, mobileNumber, userName } = req.body;
+
+    //         if (!password || (!email && !mobileNumber && !userName)) {
+    //             return res.status(400).json({ message: 'Email, mobile number, or username, along with a password, are required.' });
+    //         }
+
+    //         const query = email
+    //             ? { email } : mobileNumber
+    //                 ? { mobileNumber } : { userName };
+
+    //         const user = await User.findOne(query);
+    //         if (!user) {
+    //             return res.status(404).json({ message: 'User not found.' });
+    //         }
+
+    //         const isPasswordValid = await bcrypt.compare(password, user.password);
+    //         if (!isPasswordValid) {
+    //             return res.status(401).json({ message: 'Invalid credentials.' });
+    //         }
+
+    //         const token = jwt.sign(
+    //             { userId: user._id, email: user.email },
+    //             secretKey,
+    //             { expiresIn: '1h' }
+    //         );
+
+    //         res.status(200).json({
+    //             message: 'Login successful.',
+    //             token,
+    //             user: {
+    //                 id: user._id,
+    //                 email: user.email,
+    //                 fullName: user.fullName,
+    //                 userName: user.userName,
+    //                 mobileNumber: user.mobileNumber
+    //             }
+    //         });
+    //     } catch (error) {
+    //         throw error
+    //     }
+    // },
+
+    // login: async (req, res) => {
+    //     try {
+    //         const { key, password } = req.body;
+
+    //         let newKey = {
+    //             email: req.body.email,
+    //             mobileNumber: req.body.mobileNumber,
+    //             password: await bcrypt.hash(req.body.password, 10),
+    //         }
+    //         const isEmail = await User.findOne({ email: req.body.email })
+    //         if (!isEmail) {
+    //             let response = await User.create(newKey)
+    //             return res.status(200).json({ msg: "Login successfully with email", response })
+    //         }
+    //         const isMobile = await User.findOne({ mobileNumber: req.body.mobileNumber })
+    //         if (!isMobile) {
+    //             let response = await User.create(newKey)
+    //             return res.status(200).json({ msg: "login sucessfully with mobileNumber", response })
+    //         }
+    //         const isPasswordValid = await bcrypt.compare(password, user.password);
+    //         if (!isPasswordValid) {
+    //             return res.status(401).json({ message: 'Invalid credentials.' });
+    //         }
+
+    //         const token = jwt.sign(
+    //             { userId: user._id, email: user.email },
+    //             secretKey,
+    //             { expiresIn: '1h' }
+    //         );
+
+    //         res.status(200).json({
+    //             message: 'Login successful.',
+    //             token,
+
+    //         });
+
+    //     } catch (error) {
+    //         throw error
+    //     }
+    // },
+
     login: async (req, res) => {
         try {
-            const { email, password, mobileNumber, userName } = req.body;
+            const { search, password } = req.body;
 
-            if (!password || (!email && !mobileNumber && !userName)) {
-                return res.status(400).json({ message: 'Email, mobile number, or username, along with a password, are required.' });
+            if (!password || !search) {
+                return res.status(400).json({ message: 'Email or mobile number and password are required.' });
             }
 
-            const query = email
-                ? { email } : mobileNumber
-                    ? { mobileNumber } : { userName };
+            const user = await User.findOne({
+                $or: [
+                    { email: search },
+                    { mobileNumber: search }
+                ]
+            });
 
-            const user = await User.findOne(query);
             if (!user) {
-                return res.status(404).json({ message: 'User not found.' });
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                const newUser = {
+                    email: search.includes('@') ? search : null,
+                    mobileNumber: search.includes('@') ? search : null,
+                    password: hashedPassword
+                };
+
+                const response = await User.create(newUser);
+
+                return res.status(201).json({
+                    message: `User created successfully.`,
+                    user: response
+                });
             }
 
             const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -59,22 +159,16 @@ module.exports = {
                 { expiresIn: '1h' }
             );
 
-            res.status(200).json({
+            return res.status(200).json({
                 message: 'Login successful.',
-                token,
-                user: {
-                    id: user._id,
-                    email: user.email,
-                    fullName: user.fullName,
-                    userName: user.userName,
-                    mobileNumber: user.mobileNumber
-                }
+                token
             });
+
         } catch (error) {
+            console.error(error);
             throw error
         }
     },
-
     upload: async (req, res) => {
         try {
             const { email, password, posts, reels } = req.body;
@@ -142,6 +236,7 @@ module.exports = {
             throw error
         }
     },
+
     getFriendRequests: async (req, res) => {
         try {
             const { userId } = req.body;
@@ -161,6 +256,7 @@ module.exports = {
             throw error
         }
     },
+
     blockingStatus: async (req, res) => {
         try {
             const { block, unblock, status } = req.body;
@@ -183,7 +279,8 @@ module.exports = {
             throw error
         }
     },
-    getBlockingStatus:async(req,res)=>{
+
+    getBlockingStatus: async (req, res) => {
         try {
             const { userId } = req.body;
 
@@ -198,9 +295,25 @@ module.exports = {
             });
 
             return res.status(200).json({ message: "Blocking Status retreived successfully.", data: blocked });
-        
+
         } catch (error) {
-         throw error   
+            throw error
         }
-    }
+    },
+
+    logout: async (req, res) => {
+        try {
+            const _id = req.user._id
+
+            const logout = await User.findByIdAndUpdate(_id, {
+                deviceToken: ""
+            })
+            return res.send({
+                status: 200,
+                message: "logout successfully"
+            })
+        } catch (error) {
+            throw error
+        }
+    },
 }
